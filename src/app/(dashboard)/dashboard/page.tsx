@@ -1,26 +1,29 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LogoutButton } from "@/components/logout-button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session) {
-    redirect("/");
-  }
-
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-24">
-      <Card className="w-[350px]">
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Welcome back!</h2>
+        <p className="text-muted-foreground">
+          Here's what's happening with your account today.
+        </p>
+      </div>
+      <Card>
         <CardHeader>
           <CardTitle>Dashboard</CardTitle>
+          <CardDescription>
+            Welcome, {session?.user?.email}!
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="mb-4">Welcome, {session.user?.email}!</p>
-          <p className="text-sm text-gray-500 mb-4">This is a protected page.</p>
-          <LogoutButton />
+          <p className="text-sm text-muted-foreground">
+            This is a protected page with sidebar navigation.
+          </p>
         </CardContent>
       </Card>
     </div>
