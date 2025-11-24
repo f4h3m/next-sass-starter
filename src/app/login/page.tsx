@@ -1,11 +1,11 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { SignupForm } from '@/components/signup-form';
+import { LoginForm } from '@/components/login-form';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 
-export default async function SignupPage() {
+export default async function LoginPage() {
   const session = await getServerSession(authOptions);
 
   if (session) {
@@ -16,17 +16,17 @@ export default async function SignupPage() {
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
       <Card className="w-[400px]">
         <CardHeader>
-          <CardTitle className="text-center">Sign Up</CardTitle>
+          <CardTitle className="text-center">Login</CardTitle>
           <CardDescription className="text-center">
-            Create a new account to get started
+            Enter your credentials to access your account
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <SignupForm />
+          <LoginForm />
           <div className="mt-4 text-center text-sm">
-            <span className="text-muted-foreground">Already have an account? </span>
-            <Link href="/login" className="text-primary hover:underline">
-              Login
+            <span className="text-muted-foreground">Don't have an account? </span>
+            <Link href="/signup" className="text-primary hover:underline">
+              Sign up
             </Link>
           </div>
         </CardContent>
@@ -34,3 +34,4 @@ export default async function SignupPage() {
     </main>
   );
 }
+

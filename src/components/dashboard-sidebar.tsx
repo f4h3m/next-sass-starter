@@ -18,7 +18,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -158,7 +157,7 @@ export function DashboardSidebar() {
                           {session?.user?.email || ""}
                         </span>
                       </div>
-                      <SidebarMenuAction className="!top-1/2 !-translate-y-1/2 flex items-center justify-center">
+                      <SidebarMenuAction className="top-1/2! -translate-y-1/2! flex items-center justify-center">
                         <MoreVertical className="size-4" />
                         <span className="sr-only">More</span>
                       </SidebarMenuAction>
@@ -192,9 +191,11 @@ export function DashboardSidebar() {
                       <User className="size-4" />
                       <span>Account</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <CreditCard className="size-4" />
-                      <span>Billing</span>
+                    <DropdownMenuItem asChild>
+                      <Link href="/billing">
+                        <CreditCard className="size-4" />
+                        <span>Billing</span>
+                      </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
                       <Bell className="size-4" />

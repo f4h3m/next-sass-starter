@@ -33,7 +33,7 @@ export function SignupForm() {
 
       if (response.ok) {
         toast.success('Account created successfully!');
-        router.push('/');
+        router.push('/login');
       } else {
         const data = await response.json();
         toast.error(data.message || 'Registration failed');
