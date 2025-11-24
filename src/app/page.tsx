@@ -1,16 +1,11 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
-
-  if (session) {
-    redirect("/dashboard");
-  }
 
   return (
     <main className="flex min-h-screen flex-col">
@@ -21,12 +16,20 @@ export default async function Home() {
             <h1 className="text-xl font-bold">SaaS Starter</h1>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost">Login</Button>
-            </Link>
-            <Link href="/signup">
-              <Button>Get Started</Button>
-            </Link>
+            {session ? (
+              <Link href="/dashboard">
+                <Button>Go to Dashboard</Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost">Login</Button>
+                </Link>
+                <Link href="/signup">
+                  <Button>Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -44,17 +47,28 @@ export default async function Home() {
             tools you need to launch your SaaS product quickly.
           </p>
           <div className="mt-10 flex items-center justify-center gap-4">
-            <Link href="/signup" className="cursor-pointer inline-block">
-              <Button size="lg" className="gap-2 cursor-pointer ">
-                Get Started
-                <ArrowRight className="size-4 cur" />
-              </Button>
-            </Link>
-            <Link href="/login" className="cursor-pointer inline-block">
-              <Button size="lg" variant="outline">
-                Sign In
-              </Button>
-            </Link>
+            {session ? (
+              <Link href="/dashboard" className="cursor-pointer inline-block">
+                <Button size="lg" className="gap-2 cursor-pointer">
+                  Go to Dashboard
+                  <ArrowRight className="size-4" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link href="/signup" className="cursor-pointer inline-block">
+                  <Button size="lg" className="gap-2 cursor-pointer">
+                    Get Started
+                    <ArrowRight className="size-4" />
+                  </Button>
+                </Link>
+                <Link href="/login" className="cursor-pointer inline-block">
+                  <Button size="lg" variant="outline">
+                    Sign In
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>

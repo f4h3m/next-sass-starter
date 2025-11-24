@@ -39,75 +39,76 @@ export default function BillingPage() {
             </Button>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Method</CardTitle>
-            <CardDescription>
-              Manage your payment methods
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
-                  <span className="text-xs font-semibold">••••</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">•••• •••• •••• 4242</p>
-                  <p className="text-xs text-muted-foreground">Expires 12/25</p>
-                </div>
-              </div>
-            </div>
-            <Button variant="outline" className="w-full">
-              Update Payment Method
-            </Button>
-          </CardContent>
-        </Card>
       </div>
-
+    <div className="grid gap-4 md:grid-cols-3 mt-8">
       <Card>
         <CardHeader>
-          <CardTitle>Billing History</CardTitle>
+          <CardTitle>Free</CardTitle>
           <CardDescription>
-            View your past invoices and payments
+            Basic features for individuals
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <p className="text-sm font-medium">January 2024</p>
-                <p className="text-xs text-muted-foreground">Invoice #INV-001</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold">$9.99</p>
-                <p className="text-xs text-green-600">Paid</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <p className="text-sm font-medium">December 2023</p>
-                <p className="text-xs text-muted-foreground">Invoice #INV-002</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold">$9.99</p>
-                <p className="text-xs text-green-600">Paid</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div>
-                <p className="text-sm font-medium">November 2023</p>
-                <p className="text-xs text-muted-foreground">Invoice #INV-003</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-semibold">$9.99</p>
-                <p className="text-xs text-green-600">Paid</p>
-              </div>
-            </div>
+        <CardContent className="space-y-4">
+          <div>
+            <span className="text-3xl font-bold">$0</span>
+            <span className="text-muted-foreground ml-2 text-sm">/month</span>
           </div>
+          <ul className="text-sm space-y-1">
+            <li>✓ 1 Project</li>
+            <li>✓ Community Support</li>
+            <li className="text-muted-foreground">⨉ No team members</li>
+          </ul>
+          <Button className="w-full" variant="outline">
+            Select
+          </Button>
         </CardContent>
       </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Pro</CardTitle>
+          <CardDescription>
+            Advanced features for professionals
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <span className="text-3xl font-bold">$9.99</span>
+            <span className="text-muted-foreground ml-2 text-sm">/month</span>
+          </div>
+          <ul className="text-sm space-y-1">
+            <li>✓ 10 Projects</li>
+            <li>✓ Priority Support</li>
+            <li>✓ Up to 5 team members</li>
+          </ul>
+          <Button className="w-full">
+            Select
+          </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Enterprise</CardTitle>
+          <CardDescription>
+            Custom solutions for teams
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <span className="text-3xl font-bold">Contact us</span>
+          </div>
+          <ul className="text-sm space-y-1">
+            <li>✓ Unlimited Projects</li>
+            <li>✓ Dedicated Support</li>
+            <li>✓ Unlimited team members</li>
+            <li>✓ Custom Integrations</li>
+          </ul>
+          <Button className="w-full" variant="outline">
+            Contact Sales
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+
     </div>
   );
 }
