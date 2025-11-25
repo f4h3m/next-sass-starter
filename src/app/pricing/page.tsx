@@ -2,8 +2,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Check } from 'lucide-react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { CheckoutButton } from '@/components/checkout-button';
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const session = await getServerSession(authOptions);
+  
+  // Get variant IDs from environment variables
+  const monthlyVariantId = process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '';
+  const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID || '';
   const plans = [
     {
       name: 'Free Trial',
@@ -133,13 +141,79 @@ export default function PricingPage() {
                   </ul>
                 </CardContent>
                 <CardFooter>
-                  <Button
-                    asChild
-                    className="w-full"
-                    variant={plan.highlight ? 'default' : 'outline'}
-                  >
-                    <Link href="/signup">{plan.cta}</Link>
-                  </Button>
+                  {plan.name === 'Free Trial' ? (
+                    <Button
+                      asChild
+                      className="w-full"
+                      variant={plan.highlight ? 'default' : 'outline'}
+                    >
+                      <Link href="/signup">{plan.cta}</Link>
+                    </Button>
+                  ) : plan.name === 'Monthly' ? (
+                    session ? (
+                      monthlyVariantId ? (
+                        <CheckoutButton
+                          variantId={monthlyVariantId}
+                          className="w-full"
+                          variant={plan.highlight ? 'default' : 'outline'}
+                        >
+                          {plan.cta}
+                        </CheckoutButton>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          variant={plan.highlight ? 'default' : 'outline'}
+                          disabled
+                        >
+                          Configuration Required
+                        </Button>
+                      )
+                    ) : (
+                      <Button
+                        asChild
+                        className="w-full"
+                        variant={plan.highlight ? 'default' : 'outline'}
+                      >
+                        <Link href="/signup">{plan.cta}</Link>
+                      </Button>
+                    )
+                  ) : plan.name === 'Yearly' ? (
+                    session ? (
+                      yearlyVariantId ? (
+                        <CheckoutButton
+                          variantId={yearlyVariantId}
+                          className="w-full"
+                          variant={plan.highlight ? 'default' : 'outline'}
+                        >
+                          {plan.cta}
+                        </CheckoutButton>
+                      ) : (
+                        <Button
+                          className="w-full"
+                          variant={plan.highlight ? 'default' : 'outline'}
+                          disabled
+                        >
+                          Configuration Required
+                        </Button>
+                      )
+                    ) : (
+                      <Button
+                        asChild
+                        className="w-full"
+                        variant={plan.highlight ? 'default' : 'outline'}
+                      >
+                        <Link href="/signup">{plan.cta}</Link>
+                      </Button>
+                    )
+                  ) : (
+                    <Button
+                      asChild
+                      className="w-full"
+                      variant={plan.highlight ? 'default' : 'outline'}
+                    >
+                      <Link href="/signup">{plan.cta}</Link>
+                    </Button>
+                  )}
                 </CardFooter>
               </Card>
             ))}

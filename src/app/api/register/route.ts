@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { initializeTrial } from "@/lib/trial";
 
 export async function POST(req: Request) {
   try {
@@ -28,11 +29,13 @@ export async function POST(req: Request) {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+    const trialData = initializeTrial();
 
     const user = await User.create({
       name,
       email,
       password: hashedPassword,
+      ...trialData,
     });
 
     // Remove password from response
