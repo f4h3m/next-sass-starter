@@ -10,6 +10,7 @@ import { BillingSuccess } from "@/components/billing-success";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { isInTrial, isTrialExpired, getTrialDaysRemaining } from "@/lib/trial";
+import { updateSubscriptionStatusIfExpired, getEffectiveSubscriptionStatus } from "@/lib/subscription";
 
 export default async function BillingPage() {
   const session = await getServerSession(authOptions);
@@ -24,27 +25,39 @@ export default async function BillingPage() {
   
   let subscriptionData = null;
   if (user) {
-    const inTrial = isInTrial(user.trialEndDate);
-    const trialExpired = isTrialExpired(user.trialEndDate);
-    const trialDaysRemaining = getTrialDaysRemaining(user.trialEndDate);
+    // Auto-update subscription status if expired
+    await updateSubscriptionStatusIfExpired(user._id.toString());
     
-    let effectiveStatus = user.subscriptionStatus;
-    if (user.subscriptionStatus === 'trial' && trialExpired) {
-      effectiveStatus = 'expired';
-    }
+    // Re-fetch to get updated status
+    const updatedUser = await User.findById(user._id).select('-password');
+    
+    if (updatedUser) {
+      const inTrial = isInTrial(updatedUser.trialEndDate);
+      const trialExpired = isTrialExpired(updatedUser.trialEndDate);
+      const trialDaysRemaining = getTrialDaysRemaining(updatedUser.trialEndDate);
+      
+      const effectiveStatus = getEffectiveSubscriptionStatus(
+        updatedUser.subscriptionStatus,
+        updatedUser.subscriptionEndDate,
+        updatedUser.trialEndDate,
+        updatedUser.subscriptionRenewalDate
+      );
     
     subscriptionData = {
       subscriptionStatus: effectiveStatus,
-      currentPlan: user.currentPlan,
-      trialStartDate: user.trialStartDate,
-      trialEndDate: user.trialEndDate,
+        currentPlan: updatedUser.currentPlan,
+        trialStartDate: updatedUser.trialStartDate,
+        trialEndDate: updatedUser.trialEndDate,
+        subscriptionRenewalDate: updatedUser.subscriptionRenewalDate,
+        subscriptionEndDate: updatedUser.subscriptionEndDate,
       inTrial,
       trialExpired,
       trialDaysRemaining,
-      lemonSqueezyCustomerId: user.lemonSqueezyCustomerId,
-      lemonSqueezySubscriptionId: user.lemonSqueezySubscriptionId,
-      lemonSqueezyVariantId: user.lemonSqueezyVariantId,
+        lemonSqueezyCustomerId: updatedUser.lemonSqueezyCustomerId,
+        lemonSqueezySubscriptionId: updatedUser.lemonSqueezySubscriptionId,
+        lemonSqueezyVariantId: updatedUser.lemonSqueezyVariantId,
     };
+    }
   }
 
   const monthlyVariantId = process.env.LEMONSQUEEZY_MONTHLY_VARIANT_ID || '';
@@ -129,11 +142,27 @@ export default async function BillingPage() {
                       </span>
                     </div>
                   )}
-                  {subscriptionData.trialEndDate && (
+                  {(subscriptionData.subscriptionStatus === 'trial' || subscriptionData.subscriptionStatus === 'expired') && subscriptionData.trialEndDate && (
                     <div className="flex items-center justify-between mt-2">
                       <span className="text-sm font-medium">Trial Ends</span>
                       <span className="text-sm text-muted-foreground">
                         {new Date(subscriptionData.trialEndDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                  {subscriptionData.subscriptionStatus === 'active' && subscriptionData.subscriptionRenewalDate && (
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm font-medium">Renews On</span>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(subscriptionData.subscriptionRenewalDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+                  {subscriptionData.subscriptionStatus === 'cancelled' && subscriptionData.subscriptionEndDate && (
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-sm font-medium">Ends On</span>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(subscriptionData.subscriptionEndDate).toLocaleDateString()}
                       </span>
                     </div>
                   )}

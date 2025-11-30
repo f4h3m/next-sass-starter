@@ -41,6 +41,12 @@ const UserSchema = new mongoose.Schema({
     enum: ['trial', 'monthly', 'yearly'],
     default: 'trial',
   },
+  subscriptionRenewalDate: {
+    type: Date,
+  },
+  subscriptionEndDate: {
+    type: Date,
+  },
 });
 
 export default mongoose.models.User || mongoose.model('User', UserSchema);

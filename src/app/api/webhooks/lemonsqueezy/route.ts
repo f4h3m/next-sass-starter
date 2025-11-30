@@ -1,7 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyWebhookSignature } from '@/lib/lemonsqueezy';
+import { verifyWebhookSignature, getSubscriptionDetails } from '@/lib/lemonsqueezy';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
+
+/**
+ * Helper function to safely parse date from LemonSqueezy webhook payload
+ * Returns null if date is null, undefined, or invalid
+ */
+function parseWebhookDate(dateValue: string | null | undefined): Date | null {
+  if (!dateValue) {
+    return null;
+  }
+  try {
+    const date = new Date(dateValue);
+    return isNaN(date.getTime()) ? null : date;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -107,6 +123,8 @@ export async function POST(req: NextRequest) {
           variantId,
           subscriptionCustom: subscription.custom,
           subscriptionAttributes: Object.keys(subscription),
+          renews_at: subscription.renews_at,
+          ends_at: subscription.ends_at,
         });
         
         // Try multiple methods to find the user
@@ -160,15 +178,107 @@ export async function POST(req: NextRequest) {
           const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID;
           const plan = variantId === monthlyVariantId ? 'monthly' : variantId === yearlyVariantId ? 'yearly' : 'monthly';
           
+          // Extract subscription dates from webhook payload
+          let renewalDate = parseWebhookDate(subscription.renews_at);
+          let endDate = parseWebhookDate(subscription.ends_at);
+          
+          console.log('Dates from webhook payload:', {
+            renews_at: subscription.renews_at,
+            ends_at: subscription.ends_at,
+            parsedRenewalDate: renewalDate,
+            parsedEndDate: endDate,
+          });
+          
+          // Always fetch from API to ensure we have the latest subscription data
+          // This is more reliable than relying on webhook payload
+          try {
+            console.log('Fetching subscription details from LemonSqueezy API for subscription:', subscriptionId);
+            const subscriptionDetails = await getSubscriptionDetails(subscriptionId);
+            
+            // Log the full structure to understand the response format
+            console.log('API response structure:', {
+              hasData: !!subscriptionDetails,
+              type: typeof subscriptionDetails,
+              isArray: Array.isArray(subscriptionDetails),
+              keys: subscriptionDetails ? Object.keys(subscriptionDetails) : [],
+            });
+            
+            // Try different possible response structures
+            let subscriptionData = null;
+            
+            // Structure 1: subscriptionDetails.data.attributes (most common)
+            if (subscriptionDetails?.data?.attributes) {
+              subscriptionData = subscriptionDetails.data.attributes;
+              console.log('Found data in subscriptionDetails.data.attributes');
+            }
+            // Structure 2: subscriptionDetails.attributes (if getSubscriptionDetails already unwraps)
+            else if (subscriptionDetails?.attributes) {
+              subscriptionData = subscriptionDetails.attributes;
+              console.log('Found data in subscriptionDetails.attributes');
+            }
+            // Structure 3: subscriptionDetails is the data object itself
+            else if (subscriptionDetails && typeof subscriptionDetails === 'object' && 'renews_at' in subscriptionDetails) {
+              subscriptionData = subscriptionDetails;
+              console.log('Found data directly in subscriptionDetails');
+            }
+            
+            if (subscriptionData) {
+              console.log('Subscription data from API:', {
+                renews_at: subscriptionData.renews_at,
+                ends_at: subscriptionData.ends_at,
+                ends_at_type: typeof subscriptionData.ends_at,
+                ends_at_is_null: subscriptionData.ends_at === null,
+                allKeys: Object.keys(subscriptionData).slice(0, 20), // First 20 keys
+              });
+              
+              // Always use API data if available (more reliable)
+              if (subscriptionData.renews_at) {
+                renewalDate = parseWebhookDate(subscriptionData.renews_at);
+              }
+              // ends_at is null for active subscriptions (expected behavior)
+              // Only parse if it's a valid date string
+              if (subscriptionData.ends_at !== undefined && subscriptionData.ends_at !== null) {
+                endDate = parseWebhookDate(subscriptionData.ends_at);
+              } else if (subscriptionData.ends_at === null) {
+                // Explicitly set to null for active subscriptions
+                endDate = null;
+                console.log('ends_at is null (active subscription - expected)');
+              }
+              
+              console.log('Final parsed dates:', {
+                renewalDate,
+                endDate,
+                renewalDateString: renewalDate?.toISOString(),
+                endDateString: endDate?.toISOString(),
+                endDateIsNull: endDate === null,
+              });
+            } else {
+              console.warn('No subscription data found in API response. Full response:', JSON.stringify(subscriptionDetails, null, 2).substring(0, 1000));
+            }
+          } catch (error) {
+            console.error('Failed to fetch subscription details from API:', error);
+            if (error instanceof Error) {
+              console.error('Error message:', error.message);
+              console.error('Error stack:', error.stack);
+            }
+            // Continue with webhook data if API fails
+          }
+          
+          const updateData: any = {
+            lemonSqueezyCustomerId: customerId,
+            lemonSqueezySubscriptionId: subscriptionId,
+            lemonSqueezyVariantId: variantId,
+            subscriptionStatus: 'active',
+            currentPlan: plan,
+          };
+          
+          // Always update dates - set to null if not available (for active subscriptions, ends_at is null)
+          updateData.subscriptionRenewalDate = renewalDate || null;
+          updateData.subscriptionEndDate = endDate || null;
+          
           const updated = await User.findByIdAndUpdate(
             user._id,
-            {
-              lemonSqueezyCustomerId: customerId,
-              lemonSqueezySubscriptionId: subscriptionId,
-              lemonSqueezyVariantId: variantId,
-              subscriptionStatus: 'active',
-              currentPlan: plan,
-            },
+            updateData,
             { new: true }
           );
           
@@ -178,6 +288,8 @@ export async function POST(req: NextRequest) {
             currentPlan: updated?.currentPlan,
             lemonSqueezyCustomerId: updated?.lemonSqueezyCustomerId,
             lemonSqueezySubscriptionId: updated?.lemonSqueezySubscriptionId,
+            subscriptionRenewalDate: updated?.subscriptionRenewalDate,
+            subscriptionEndDate: updated?.subscriptionEndDate,
           });
         } else {
           console.error('❌ Could not find user for subscription:', {
@@ -207,37 +319,100 @@ export async function POST(req: NextRequest) {
           const yearlyVariantId = process.env.LEMONSQUEEZY_YEARLY_VARIANT_ID;
           const plan = variantId === monthlyVariantId ? 'monthly' : variantId === yearlyVariantId ? 'yearly' : user.currentPlan;
           
-          await User.findByIdAndUpdate(user._id, {
+          // Extract subscription dates from webhook payload
+          const renewalDate = parseWebhookDate(subscription.renews_at);
+          const endDate = parseWebhookDate(subscription.ends_at);
+          
+          const updateData: any = {
             lemonSqueezyVariantId: variantId,
             subscriptionStatus: subscription.status === 'active' ? 'active' : 'cancelled',
             currentPlan: plan,
-          });
+          };
+          
+          // Update dates if provided
+          if (renewalDate !== null) {
+            updateData.subscriptionRenewalDate = renewalDate;
+          }
+          if (endDate !== null) {
+            updateData.subscriptionEndDate = endDate;
+          }
+          
+          await User.findByIdAndUpdate(user._id, updateData);
         }
         break;
       }
 
       case 'subscription_cancelled': {
+        const subscription = data.attributes;
         const subscriptionId = data.id;
+
+        console.log('Subscription cancelled:', {
+          subscriptionId,
+          ends_at: subscription.ends_at,
+          subscriptionAttributes: Object.keys(subscription),
+        });
 
         const user = await User.findOne({ lemonSqueezySubscriptionId: subscriptionId });
 
         if (user) {
-          await User.findByIdAndUpdate(user._id, {
+          // Extract end date from webhook payload
+          let endDate = parseWebhookDate(subscription.ends_at);
+          
+          // If not in webhook, try fetching from API
+          if (!endDate) {
+            try {
+              console.log('Fetching cancelled subscription details from API...');
+              const subscriptionDetails = await getSubscriptionDetails(subscriptionId);
+              let subscriptionData = subscriptionDetails?.data?.attributes || subscriptionDetails?.attributes || subscriptionDetails;
+              
+              if (subscriptionData?.ends_at) {
+                endDate = parseWebhookDate(subscriptionData.ends_at);
+                console.log('Fetched end date from API:', subscriptionData.ends_at, 'parsed:', endDate);
+              }
+            } catch (error) {
+              console.error('Failed to fetch cancelled subscription details from API:', error);
+            }
+          }
+          
+          const updateData: any = {
             subscriptionStatus: 'cancelled',
+            subscriptionEndDate: endDate || null,
+          };
+          
+          console.log('Updating user with cancelled subscription:', {
+            userId: user._id,
+            endDate,
+            updateData,
           });
+          
+          await User.findByIdAndUpdate(user._id, updateData);
         }
         break;
       }
 
       case 'subscription_payment_success': {
         const subscriptionId = data.attributes.subscription_id.toString();
+        // Note: subscription_payment_success may not include full subscription data
+        // We might need to fetch subscription details from API, but for now we'll
+        // try to get dates from the webhook payload if available
+        const subscription = data.attributes;
 
         const user = await User.findOne({ lemonSqueezySubscriptionId: subscriptionId });
 
         if (user) {
-          await User.findByIdAndUpdate(user._id, {
+          // Extract renewal date if available in webhook payload
+          const renewalDate = parseWebhookDate(subscription.renews_at);
+          
+          const updateData: any = {
             subscriptionStatus: 'active',
-          });
+          };
+          
+          // Update renewal date if provided
+          if (renewalDate) {
+            updateData.subscriptionRenewalDate = renewalDate;
+          }
+          
+          await User.findByIdAndUpdate(user._id, updateData);
         }
         break;
       }

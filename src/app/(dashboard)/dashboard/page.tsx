@@ -1,32 +1,50 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { isInTrial, getTrialDaysRemaining } from "@/lib/trial";
+import { getEffectiveSubscriptionStatus } from "@/lib/subscription";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
 
-  let subscriptionInfo = null;
-  if (session?.user?.email) {
-    await connectDB();
-    const user = await User.findOne({ email: session.user.email }).select('-password');
-    
-    if (user) {
-      const inTrial = isInTrial(user.trialEndDate);
-      const trialDaysRemaining = getTrialDaysRemaining(user.trialEndDate);
-      
-      subscriptionInfo = {
-        status: user.subscriptionStatus,
-        plan: user.currentPlan,
-        inTrial,
-        trialDaysRemaining,
-      };
-    }
+  if (!session?.user?.email) {
+    redirect("/");
   }
+
+  await connectDB();
+  const user = await User.findOne({ email: session.user.email }).select('-password');
+  
+  if (!user) {
+    redirect("/");
+  }
+
+  // Check if subscription is expired and redirect to billing
+  const effectiveStatus = getEffectiveSubscriptionStatus(
+    user.subscriptionStatus,
+    user.subscriptionEndDate,
+    user.trialEndDate,
+    user.subscriptionRenewalDate
+  );
+
+  if (effectiveStatus === 'expired') {
+    redirect("/billing?expired=true");
+  }
+
+  let subscriptionInfo = null;
+  const inTrial = isInTrial(user.trialEndDate);
+  const trialDaysRemaining = getTrialDaysRemaining(user.trialEndDate);
+  
+  subscriptionInfo = {
+    status: user.subscriptionStatus,
+    plan: user.currentPlan,
+    inTrial,
+    trialDaysRemaining,
+  };
 
   return (
     <div className="space-y-4">
