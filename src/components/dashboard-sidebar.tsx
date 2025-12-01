@@ -43,9 +43,9 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "New",
-    url: "/new",
-    icon: Plus,
+    title: "Invoices",
+    url: "/invoices",
+    icon: CreditCard,
   },
   {
     title: "Settings",

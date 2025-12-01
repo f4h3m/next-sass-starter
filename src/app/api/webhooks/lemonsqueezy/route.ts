@@ -193,7 +193,8 @@ export async function POST(req: NextRequest) {
           // This is more reliable than relying on webhook payload
           try {
             console.log('Fetching subscription details from LemonSqueezy API for subscription:', subscriptionId);
-            const subscriptionDetails = await getSubscriptionDetails(subscriptionId);
+            // TypeScript: treat subscription details as any since the SDK types are broad
+            const subscriptionDetails: any = await getSubscriptionDetails(subscriptionId);
             
             // Log the full structure to understand the response format
             console.log('API response structure:', {
@@ -362,7 +363,7 @@ export async function POST(req: NextRequest) {
           if (!endDate) {
             try {
               console.log('Fetching cancelled subscription details from API...');
-              const subscriptionDetails = await getSubscriptionDetails(subscriptionId);
+              const subscriptionDetails: any = await getSubscriptionDetails(subscriptionId);
               let subscriptionData = subscriptionDetails?.data?.attributes || subscriptionDetails?.attributes || subscriptionDetails;
               
               if (subscriptionData?.ends_at) {

@@ -5,7 +5,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
 import { SiteHeader } from "@/components/site-header";
 
-export function DashboardWrapper({ children }: { children: React.ReactNode }) {
+export function DashboardLayoutClient({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
       <SidebarProvider

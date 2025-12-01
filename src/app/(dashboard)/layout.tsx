@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { DashboardWrapper } from "@/components/dashboard-wrapper";
+import { DashboardLayoutClient } from "@/components/dashboard-layout-client";
 import connectDB from "@/lib/db";
 import User from "@/models/User";
 import { updateSubscriptionStatusIfExpired } from "@/lib/subscription";
@@ -26,6 +26,10 @@ export default async function DashboardLayout({
     await updateSubscriptionStatusIfExpired(user._id.toString());
   }
 
-  return <DashboardWrapper>{children}</DashboardWrapper>;
+  return (
+    <DashboardLayoutClient>
+      {children}
+    </DashboardLayoutClient>
+  );
 }
 
